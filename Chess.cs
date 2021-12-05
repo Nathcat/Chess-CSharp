@@ -7,15 +7,16 @@
  */
 
 using System;
+using System.Collections;
 
 
-namespace ChessEngine {
+namespace Chess {
     public class NoSuchPieceException : System.Exception {
         /*
          * Thrown whenever a piece cannot be found in the given position.
          */
 
-        public string ToString() {
+        public override string ToString() {
             /*
              * Called when the class is cast to a string
              * :return: Error message
@@ -59,11 +60,19 @@ namespace ChessEngine {
             return new Vector(a.x / b, a.y / b);
         }
 
-        public static Vector operator ==(Vector a, Vector b) {
+        public static bool operator ==(Vector a, Vector b) {
             return (a.x == b.x) && (a.y == b.y);
         }
 
-        public static bool IsOutOfBounds() {
+        public static bool operator !=(Vector a, Vector b) {
+          return !((a.x == b.x) && (a.y == b.y));
+        }
+
+        public string ToString() {
+          return $"({x}, {y})";
+        }
+
+        public bool IsOutOfBounds() {
             return (x >= 8f || x <= -1f) || (y >= 8f || y <= -1f);
         }
     }
@@ -75,19 +84,6 @@ namespace ChessEngine {
         public Vector[][] moves;
         public Vector[][] attacks;
         public int index;
-
-        public Piece(int Index, string Name, int Side, Vector Position, Vector[][] Moves, Vector[][] Attacks) {
-            /*
-             * Initialize this piece
-             */
-            
-            index = Index;
-            name = Name;
-            side = Side;
-            position = Position;
-            moves = Moves;
-            attacks = Attacks;
-        }
 
         public virtual bool Move(Vector newPosition, ChessEngine engine) {
             /*
@@ -211,7 +207,7 @@ namespace ChessEngine {
                         valid = false;
                     }
 
-                    Vector oldPosition = Vector(position.x, position.y);
+                    Vector oldPosition = new Vector(position.x, position.y);
                     position += move;
                     engine.CheckForCheck();
                     valid = !engine.inCheck;
@@ -227,9 +223,9 @@ namespace ChessEngine {
                 }
             }
 
-            Vector[] legalMoves_out = new Vector[legalMoves.Size()];
-            for (int x = 0; x < legalMoves.Size(); x++) {
-                legalMoves_out[x] = (Vector) (legalMoves.Get(x));
+            Vector[] legalMoves_out = new Vector[legalMoves.ToArray().Length];
+            for (int x = 0; x < legalMoves.ToArray().Length; x++) {
+                legalMoves_out[x] = (Vector) (legalMoves.ToArray()[x]);
             }
 
             return legalMoves_out;
@@ -258,9 +254,9 @@ namespace ChessEngine {
                 engine.CheckForCheck();
             }
 
-            Vector[] legalMoves = new Vector[moves.Size()];
-            for (int x = 0; x < moves.Size(); x++) {
-                legalMoves[x] = (Vector) (moves.Get(x));
+            Vector[] legalMoves = new Vector[moves.ToArray().Length];
+            for (int x = 0; x < moves.ToArray().Length; x++) {
+                legalMoves[x] = (Vector) (moves.ToArray()[x]);
             }
 
             return legalMoves;
@@ -295,9 +291,9 @@ namespace ChessEngine {
                 }
             }
 
-            Vector[] legalAttacks_out = new Vector[legalAttacks.Size()];
-            for (int x = 0; x < legalAttacks.Size(); x++) {
-                legalAttacks_out[x] = (Vector) (legalAttacks.Get(x));
+            Vector[] legalAttacks_out = new Vector[legalAttacks.ToArray().Length];
+            for (int x = 0; x < legalAttacks.ToArray().Length; x++) {
+                legalAttacks_out[x] = (Vector) (legalAttacks.ToArray()[x]);
             }
 
             return legalAttacks_out;
@@ -313,16 +309,28 @@ namespace ChessEngine {
             ArrayList attacks = new ArrayList();
 
             foreach (Piece threat in engine.threats) {
+                if (threat == null) {
+                    continue;
+                }
+
                 foreach (Vector attack in GetLegalAttacks(false, engine)) {
-                    if (threat.position == attack && !attack.IsOutOfBounds()) {
+                    Piece[] threats = engine.GetThreats(index, attack);
+                    int total = 0;
+                    for (int x = 0; x < threats.Length; x++) {
+                        if (threats[x].side != side) {
+                            total++;
+                        }
+                    } 
+
+                    if (threat.position == attack && !attack.IsOutOfBounds() && total == 0) {
                         attacks.Add(attack);
                     }
                 }
             }
 
-            Vector[] legalAttacks = new Vector[attacks.Size()];
-            for (int x = 0; x < attacks.Size(); x++) {
-                legalAttacks[x] = (Vector) (attacks.Get(x));
+            Vector[] legalAttacks = new Vector[attacks.ToArray().Length];
+            for (int x = 0; x < attacks.ToArray().Length; x++) {
+                legalAttacks[x] = (Vector) (attacks.ToArray()[x]);
             }
 
             return legalAttacks;
@@ -332,7 +340,7 @@ namespace ChessEngine {
             return false;
         }
 
-        public static string ToString() {
+        public override string ToString() {
             /*
              * Cast this piece to a string.
              * :return: A string representation of this piece with coloured text.
@@ -340,10 +348,10 @@ namespace ChessEngine {
 
             string colour = "";
             if (side == 0) {
-                colour = "\u001b[30m";
+                colour = "\u001b[37m";
 
             } else {
-                colour = "\u001b[37m";
+                colour = "\u001b[38;5;247m";
             }
 
             return $"{colour}{name}\u001b[0m";
@@ -351,25 +359,27 @@ namespace ChessEngine {
     }
 
     public class Pawn : Piece {
-        public Pawn(int index, int side, Vector position) {
+        public Pawn(int Index, int Side, Vector Position) {
+            side = Side;
             int direction = 1;
             if (side == 1) {
                 direction = -1;
             }
 
-            base(index, "Pa", side, position, 
-                new Vector[][] {
-                    new Vector[] {
-                        new Vector(0, 1 * direction),
-                        new Vector(0, 2 * direction)
-                    }
-                },
-                
-                new Vector[][] {
-                    new Vector[] {new Vector(-1, 1 * direction)},
-                    new Vector[] {new Vector(1, 1 * direction)}
+            index = Index;
+            name = "Pa";
+            position = Position;
+            moves = new Vector[][] {
+                new Vector[] {
+                  new Vector(0, 1 * direction),
+                  new Vector(0, 2 * direction)
                 }
-            );
+            };
+
+            attacks = new Vector[][] {
+                new Vector[] {new Vector(-1, 1 * direction)},
+                new Vector[] {new Vector(1, 1 * direction)}
+            };
         }
 
         public override bool Move(Vector newPosition, ChessEngine engine) {
@@ -407,7 +417,7 @@ namespace ChessEngine {
     }
 
     public class Rook : Piece {
-        public Rook(int index, int side, Vector position) {
+        public Rook(int Index, int Side, Vector Position) {
             Vector[][] Moves = new Vector[][] {
                 new Vector[] {
                     new Vector(-1, 0),
@@ -450,19 +460,17 @@ namespace ChessEngine {
                 }
             };
 
-            base(
-                index,
-                "Ro",
-                side,
-                position,
-                Moves,
-                Moves
-            );
+            index = Index;
+            name = "Ro";
+            side = Side;
+            position = Position;
+            moves = Moves;
+            attacks = Moves;
         }
     }
 
     public class Bishop : Piece {
-        public Bishop(int index, int side, Vector position) {
+        public Bishop(int Index, int Side, Vector Position) {
             Vector[][] Moves = new Vector[][] {
                 new Vector[] {
                     new Vector(1, 1),
@@ -505,19 +513,17 @@ namespace ChessEngine {
                 }
             };
 
-            base(
-                index,
-                "Bi",
-                side,
-                position,
-                Moves,
-                Moves
-            );
+            index = Index;
+            name = "Bi";
+            side = Side;
+            position = Position;
+            moves = Moves;
+            attacks = Moves;
         }
     }
 
     public class Knight : Piece {
-        public Knight(int index, int side, Vector position) {
+        public Knight(int Index, int Side, Vector Position) {
             Vector[][] Moves = new Vector[][] {
                 new Vector[] { new Vector(1, 2) },
                 new Vector[] { new Vector(2, 1) },
@@ -529,19 +535,17 @@ namespace ChessEngine {
                 new Vector[] { new Vector(-1, 2) }
             };
 
-            base(
-                index,
-                "Kn",
-                side,
-                position,
-                Moves,
-                Moves
-            );
+            index = Index;
+            name = "Kn";
+            side = Side;
+            position = Position;
+            moves = Moves;
+            attacks = Moves;
         }
     }
 
     public class Queen : Piece {
-        public Queen(int index, int side, Vector position) {
+        public Queen(int Index, int Side, Vector Position) {
             Vector[][] Moves = new Vector[][] {
                 new Vector[] {
                     new Vector(-1, 0),
@@ -624,19 +628,17 @@ namespace ChessEngine {
                 }
             };
 
-            base(
-                index,
-                "Qu",
-                side,
-                position,
-                Moves,
-                Moves
-            );
+            index = Index;
+            name = "Qu";
+            side = Side;
+            position = Position;
+            moves = Moves;
+            attacks = Moves;
         }
     }
 
     public class King : Piece {
-        public King(int index, int side, Vector position) {
+        public King(int Index, int Side, Vector Position) {
             Vector[][] Moves = new Vector[][] {
                 new Vector[] { new Vector(-1, 1) },
                 new Vector[] { new Vector(0, 1) },
@@ -648,14 +650,12 @@ namespace ChessEngine {
                 new Vector[] { new Vector(-1, 0) }
             };
 
-            base(
-                index,
-                "Ki",
-                side,
-                position,
-                Moves,
-                Moves
-            );
+            index = Index;
+            name = "Ki";
+            side = Side;
+            position = Position;
+            moves = Moves;
+            attacks = Moves;
         }
 
         public override Vector[] GetLegalCheckAttacks(ChessEngine engine) {
@@ -663,7 +663,7 @@ namespace ChessEngine {
 
             foreach (Piece threat in engine.threats) {
                 foreach (Vector attack in GetLegalAttacks(false, engine)) {
-                    Piece threats = engine.GetThreats(index, attack);
+                    Piece[] threats = engine.GetThreats(index, attack);
 
                     bool emptyPass = false;
                     while (!emptyPass) {
@@ -692,9 +692,9 @@ namespace ChessEngine {
                 }
             }
 
-            Vector[] legalAttacks = new Vector[attacks.Size()];
-            for (int x = 0; x < attacks.Size(); x++) {
-                legalAttacks[x] = (Piece) (attacks.Get(x));
+            Vector[] legalAttacks = new Vector[attacks.ToArray().Length];
+            for (int x = 0; x < attacks.ToArray().Length; x++) {
+                legalAttacks[x] = (Vector) (attacks.ToArray()[x]);
             }
 
             return legalAttacks;
@@ -771,7 +771,7 @@ namespace ChessEngine {
             inCheck = false;
             checkmate = false;
             turnCounter = new TurnCounter();
-            threats = new Piece[];
+            threats = new Piece[] {};
 
             pieces = new Piece[] {
                 new Pawn(0, 0, new Vector(0, 1)),
@@ -782,30 +782,32 @@ namespace ChessEngine {
                 new Pawn(5, 0, new Vector(5, 1)),
                 new Pawn(6, 0, new Vector(6, 1)),
                 new Pawn(7, 0, new Vector(7, 1)),
-                new Knight(8, 0, new Vector(1, 0)),
+                new Rook(8, 0, new Vector(0, 0)),
+                new Rook(9, 0, new Vector(7, 0)),
                 new Knight(10, 0, new Vector(1, 0)),
-                new Knight(11, 0, new Vector(6, 0)),
-                new Bishop(12, 0, new Vector(2, 0)),
-                new Bishop(13, 0, new Vector(5, 0)),
-                new Queen(14, 0, new Vector(3, 0)),
-                new King(15, 0, new Vector(4, 0)),
+                new Knight(11, 0, new Vector(1, 0)),
+                new Knight(12, 0, new Vector(6, 0)),
+                new Bishop(13, 0, new Vector(2, 0)),
+                new Bishop(14, 0, new Vector(5, 0)),
+                new Queen(15, 0, new Vector(3, 0)),
+                new King(16, 0, new Vector(4, 0)),
 
-                new Pawn(16, 1, new Vector(0, 6)),
-                new Pawn(17, 1, new Vector(1, 6)),
-                new Pawn(18, 1, new Vector(2, 6)),
-                new Pawn(19, 1, new Vector(3, 6)),
-                new Pawn(20, 1, new Vector(4, 6)),
-                new Pawn(21, 1, new Vector(5, 6)),
-                new Pawn(22, 1, new Vector(6, 6)),
-                new Pawn(23, 1, new Vector(7, 6)),
-                new Rook(24, 1, new Vector(0, 7)),
-                new Rook(25, 1, new Vector(7, 7)),
-                new Knight(26, 1, new Vector(1, 7)),
-                new Knight(27, 1, new Vector(6, 7)),
-                new Bishop(28, 1, new Vector(2, 7)),
-                new Bishop(29, 1, new Vector(5, 7)),
-                new Queen(30, 1, new Vector(3, 7)),
-                new King(31, 1, new Vector(4, 7)),
+                new Pawn(17, 1, new Vector(0, 6)),
+                new Pawn(18, 1, new Vector(1, 6)),
+                new Pawn(19, 1, new Vector(2, 6)),
+                new Pawn(20, 1, new Vector(3, 6)),
+                new Pawn(21, 1, new Vector(4, 6)),
+                new Pawn(22, 1, new Vector(5, 6)),
+                new Pawn(23, 1, new Vector(6, 6)),
+                new Pawn(24, 1, new Vector(7, 6)),
+                new Rook(25, 1, new Vector(0, 7)),
+                new Rook(26, 1, new Vector(7, 7)),
+                new Knight(27, 1, new Vector(1, 7)),
+                new Knight(28, 1, new Vector(6, 7)),
+                new Bishop(29, 1, new Vector(2, 7)),
+                new Bishop(30, 1, new Vector(5, 7)),
+                new Queen(31, 1, new Vector(3, 7)),
+                new King(32, 1, new Vector(4, 7)),
             };
         }
 
@@ -850,7 +852,7 @@ namespace ChessEngine {
 
             if (!inCheck) {
                 moves = selectedPiece.GetLegalMoves(this);
-                attacks = selectedPiece.GetLegalAttacks(this);
+                attacks = selectedPiece.GetLegalAttacks(false, this);
 
             } else {
                 moves = selectedPiece.GetLegalCheckMoves(this);
@@ -892,9 +894,9 @@ namespace ChessEngine {
                 }
             }
 
-            Piece[] threats_out = new Piece[Threats.Size()];
-            for (int x = 0; x < Threats.Size(); x++) {
-                threats_out[x] = (Piece) (Threats.Get(x));
+            Piece[] threats_out = new Piece[Threats.ToArray().Length];
+            for (int x = 0; x < Threats.ToArray().Length; x++) {
+                threats_out[x] = (Piece) (Threats.ToArray()[x]);
             }
 
             return threats_out;
@@ -926,6 +928,10 @@ namespace ChessEngine {
             while (!emptyPass) {
                 emptyPass = true;
                 for (int x = 0; x < Threats.Length; x++) {
+                    if (Threats[x] == null) {
+                      continue;
+                    }
+
                     if (Threats[x].side == king.side) {
                         Threats[x] = null;
                         emptyPass = false;
@@ -934,13 +940,22 @@ namespace ChessEngine {
                 }
             }
 
-            if (threats.Length != 0) {
+            int total = 0;
+            foreach (Piece threat in Threats) {
+                if (threat == null) {
+                    continue;
+                }
+
+                total++;
+            }
+
+            if (total != 0) {
                 inCheck = true;
                 threats = Threats;
 
             } else {
                 inCheck = false;
-                threats = new Piece[];
+                threats = new Piece[] {};
             }
         }
     
@@ -952,6 +967,10 @@ namespace ChessEngine {
             int numberOfMoves = 0;
             foreach (Piece piece in pieces) {
                 if (piece == null) {
+                    continue;
+                }
+
+                if (piece.name != "Ki" || piece.side != turnCounter.turn) {
                     continue;
                 }
 

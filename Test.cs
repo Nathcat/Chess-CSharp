@@ -1,9 +1,9 @@
 using System;
-using ChessEngine;
+using Chess;
 
 
-public class Test {
-    void AskExit() {
+public class Program {
+    static void AskExit() {
         Console.Write("\n\nAre you sure? (y/n) > ");
         string answer = Console.ReadLine();
 
@@ -29,6 +29,10 @@ public class Test {
                 System.Environment.Exit(0);
             }
 
+            if (chess.inCheck) {
+                message = "\n\n\u001b[31mCheck!\u001b[0m";
+            }
+            
             Console.WriteLine(message);
 
             message = "";
@@ -42,10 +46,11 @@ public class Test {
                     AskExit();
                 }
 
-                string[] selection = Selection.Split(" ");
+                string[] selection_ = Selection.Split(" ");
+                int[] selection = new int[selection_.Length];
 
-                for (int x = 0; x < selection.Length; x++) {
-                    selection[x] = int.Parse(selection[x]);
+                for (int x = 0; x < selection_.Length; x++) {
+                    selection[x] = int.Parse(selection_[x]);
                 }
 
                 Console.Write("\nWhere to move to > ");
@@ -54,9 +59,10 @@ public class Test {
                     AskExit();
                 }
 
-                string[] newPosition = NewPosition.Split(" ");
-                for (int x = 0; x < newPosition.Length; x++) {
-                    newPosition[x] = int.Parse(newPosition[x]);
+                string[] newPosition_ = NewPosition.Split(" ");
+                int[] newPosition = new int[newPosition_.Length];
+                for (int x = 0; x < newPosition_.Length; x++) {
+                    newPosition[x] = int.Parse(newPosition_[x]);
                 }
 
                 Vector selectionVector = new Vector(selection[0], selection[1]);
