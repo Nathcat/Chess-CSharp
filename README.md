@@ -1,3 +1,11 @@
+# Chess-CSharp
+Chess Engine written in C#.
+
+A replica of my Python Chess engine, but written in C#, for compatibility with Unity games and other platforms.
+
+An example usage with the default display form is below:
+
+```cs
 using System;
 using Chess;
 
@@ -87,3 +95,4 @@ public class Program {
         }
     }
 }
+```
