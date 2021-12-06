@@ -30,7 +30,7 @@ namespace Chess {
         /*
          * Vector class to represent locations on the board and movements of pieces.
          */
-        
+
         public float x;
         public float y;
 
@@ -92,7 +92,7 @@ namespace Chess {
              * :param engine: The ChessEngine managing the game.
              * :return: True/False, depending on whether or not the move was successful.
              */
-            
+
             if (!engine.inCheck) {
                 Vector[] legalMoves = GetLegalMoves(engine);
                 bool valid = false;
@@ -141,7 +141,7 @@ namespace Chess {
 
             if (!engine.inCheck) {
                 Vector[] legalAttacks = GetLegalAttacks(false, engine);
-                
+
                 bool valid = false;
                 foreach (Vector attack in legalAttacks) {
                     if (attack == newPosition) {
@@ -207,12 +207,18 @@ namespace Chess {
                         valid = false;
                     }
 
-                    Vector oldPosition = new Vector(position.x, position.y);
-                    position += move;
-                    engine.CheckForCheck();
-                    valid = !engine.inCheck;
-                    position = oldPosition;
-                    engine.CheckForCheck();
+                    if (engine.GetPieceByPosition(position + move) != null) {
+                      valid = false;
+                    }
+
+                    if (valid) {
+                      Vector oldPosition = new Vector(position.x, position.y);
+                      position += move;
+                      engine.CheckForCheck();
+                      valid = !engine.inCheck;
+                      position = oldPosition;
+                      engine.CheckForCheck();
+                    }
 
                     if (valid) {
                         legalMoves.Add(position + move);
@@ -246,7 +252,7 @@ namespace Chess {
                 position = move;
                 engine.CheckForCheck();
                 position = oldPosition;
-                
+
                 if (!engine.inCheck && !move.IsOutOfBounds() && engine.GetPieceByPosition(move) == null) {
                     moves.Add(move);
                 }
@@ -320,7 +326,7 @@ namespace Chess {
                         if (threats[x].side != side) {
                             total++;
                         }
-                    } 
+                    }
 
                     if (threat.position == attack && !attack.IsOutOfBounds() && total == 0) {
                         attacks.Add(attack);
@@ -760,6 +766,7 @@ namespace Chess {
             }
         }
     }
+
     public class ChessEngine {
         public bool inCheck;
         public Piece[] pieces;
@@ -785,29 +792,28 @@ namespace Chess {
                 new Rook(8, 0, new Vector(0, 0)),
                 new Rook(9, 0, new Vector(7, 0)),
                 new Knight(10, 0, new Vector(1, 0)),
-                new Knight(11, 0, new Vector(1, 0)),
-                new Knight(12, 0, new Vector(6, 0)),
-                new Bishop(13, 0, new Vector(2, 0)),
-                new Bishop(14, 0, new Vector(5, 0)),
-                new Queen(15, 0, new Vector(3, 0)),
-                new King(16, 0, new Vector(4, 0)),
+                new Knight(11, 0, new Vector(6, 0)),
+                new Bishop(12, 0, new Vector(2, 0)),
+                new Bishop(13, 0, new Vector(5, 0)),
+                new Queen(14, 0, new Vector(3, 0)),
+                new King(15, 0, new Vector(4, 0)),
 
-                new Pawn(17, 1, new Vector(0, 6)),
-                new Pawn(18, 1, new Vector(1, 6)),
-                new Pawn(19, 1, new Vector(2, 6)),
-                new Pawn(20, 1, new Vector(3, 6)),
-                new Pawn(21, 1, new Vector(4, 6)),
-                new Pawn(22, 1, new Vector(5, 6)),
-                new Pawn(23, 1, new Vector(6, 6)),
-                new Pawn(24, 1, new Vector(7, 6)),
-                new Rook(25, 1, new Vector(0, 7)),
-                new Rook(26, 1, new Vector(7, 7)),
-                new Knight(27, 1, new Vector(1, 7)),
-                new Knight(28, 1, new Vector(6, 7)),
-                new Bishop(29, 1, new Vector(2, 7)),
-                new Bishop(30, 1, new Vector(5, 7)),
-                new Queen(31, 1, new Vector(3, 7)),
-                new King(32, 1, new Vector(4, 7)),
+                new Pawn(16, 1, new Vector(0, 6)),
+                new Pawn(17, 1, new Vector(1, 6)),
+                new Pawn(18, 1, new Vector(2, 6)),
+                new Pawn(19, 1, new Vector(3, 6)),
+                new Pawn(20, 1, new Vector(4, 6)),
+                new Pawn(21, 1, new Vector(5, 6)),
+                new Pawn(22, 1, new Vector(6, 6)),
+                new Pawn(23, 1, new Vector(7, 6)),
+                new Rook(24, 1, new Vector(0, 7)),
+                new Rook(25, 1, new Vector(7, 7)),
+                new Knight(26, 1, new Vector(1, 7)),
+                new Knight(27, 1, new Vector(6, 7)),
+                new Bishop(28, 1, new Vector(2, 7)),
+                new Bishop(29, 1, new Vector(5, 7)),
+                new Queen(30, 1, new Vector(3, 7)),
+                new King(31, 1, new Vector(4, 7)),
             };
         }
 
@@ -817,7 +823,7 @@ namespace Chess {
              * :param position: The position to search in.
              * :return: The Piece that was found, or null.
              */
-            
+
             Piece selectedPiece = null;
 
             foreach (Piece piece in pieces) {
@@ -840,7 +846,7 @@ namespace Chess {
              * :param position: The location of the piece.
              * :return: A nested list: {moves, attacks}.
              */
-            
+
             Piece selectedPiece = GetPieceByPosition(position);
 
             if (selectedPiece == null) {
@@ -861,7 +867,7 @@ namespace Chess {
 
             return new Vector[][] {moves, attacks};
         }
-    
+
         public Piece[] GetThreats(int index, Vector position) {
             /*
              * Get all the threats to a given location, excluding the piece identified with index.
@@ -869,7 +875,7 @@ namespace Chess {
              * :param position: The position to check.
              * :return: A list of pieces threatening the given location.
              */
-            
+
             ArrayList Threats = new ArrayList();
 
             foreach (Piece piece in pieces) {
@@ -958,7 +964,7 @@ namespace Chess {
                 threats = new Piece[] {};
             }
         }
-    
+
         public void CheckForCheckmate() {
             /*
              * Check if the king is in checkmate.
@@ -982,7 +988,7 @@ namespace Chess {
 
             checkmate = numberOfMoves == 0;
         }
-    
+
         public bool MovePiece(Vector position, Vector newPosition) {
             /*
              * Try to move the piece at the given position to the new position.
