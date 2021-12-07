@@ -9,7 +9,6 @@
 using System;
 using System.Collections;
 
-
 namespace Chess {
     public class NoSuchPieceException : System.Exception {
         /*
@@ -321,14 +320,8 @@ namespace Chess {
 
                 foreach (Vector attack in GetLegalAttacks(false, engine)) {
                     Piece[] threats = engine.GetThreats(index, attack);
-                    int total = 0;
-                    for (int x = 0; x < threats.Length; x++) {
-                        if (threats[x].side != side) {
-                            total++;
-                        }
-                    }
 
-                    if (threat.position == attack && !attack.IsOutOfBounds() && total == 0) {
+                    if (threat.position == attack && !attack.IsOutOfBounds()) {
                         attacks.Add(attack);
                     }
                 }
@@ -976,7 +969,7 @@ namespace Chess {
                     continue;
                 }
 
-                if (piece.name != "Ki" || piece.side != turnCounter.turn) {
+                if (piece.side != turnCounter.turn) {
                     continue;
                 }
 
